@@ -4,6 +4,7 @@
  */
 package br.com.ifba.curso.entity;
 
+// imports 
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
@@ -19,9 +20,11 @@ public class Curso implements Serializable{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    private Integer vagas;
     
     private String nome;
     private String codigo;
+    private String modalidade;
 
     // Construtor vazio (obrigatório para o Hibernate)
     public Curso() {
@@ -36,5 +39,19 @@ public class Curso implements Serializable{
 
     public String getCodigo() { return codigo; }
     public void setCodigo(String codigo) { this.codigo = codigo; }
+
+    public Integer getVagas() {
+        return vagas;
+    }
+
+    public void setVagas(Integer vagas) {
+        this.vagas = vagas;
+    }
+
+    public String getModalidade() { return modalidade; }
+    
+    public void setModalidade(String modalidade) {
+        this.modalidade = modalidade;
+    }
     
 }

@@ -4,6 +4,7 @@
  */
 package br.com.ifba.curso.view;
 
+import br.com.ifba.curso.entity.Curso;
 import java.awt.Component;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -14,8 +15,13 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.Icon;
 import java.awt.Image;
 import java.awt.Insets;
+import java.util.List;
 import java.awt.RenderingHints;
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.Persistence;
 import javax.swing.border.Border;
+import javax.swing.table.DefaultTableModel;
 
 
 /**
@@ -24,21 +30,129 @@ import javax.swing.border.Border;
  */
 public class CursoListar extends javax.swing.JFrame {
 
+    private List<Curso> listaCursos;
+
     /**
      * Creates new form CursoListar
      */
     public CursoListar() {
         initComponents();
-        configurarIconesTabela();
-        
-        // LINHAS DE TESTE (Remova depois que conectar ao banco)
-    javax.swing.table.DefaultTableModel model = (javax.swing.table.DefaultTableModel) tblCursos.getModel();
-    model.setRowCount(0); // Limpa a tabela
-    model.addRow(new Object[]{"Fabricio", "Sistemas", "ADS 1", "Presencial", "", ""});
-    // Dentro do construtor CursoListar, abaixo da linha do Fabricio:
-    model.addRow(new Object[]{"Andesson", "Sistemas", "ADS 1", "Presencial", "", ""});
-    model.addRow(new Object[]{"Eduardo", "Sistemas", "ADS 1", "Presencial", "", ""});
 
+        
+        jTextField1.addFocusListener(new java.awt.event.FocusAdapter() {
+        @Override
+        public void focusGained(java.awt.event.FocusEvent evt) {
+            if (jTextField1.getText().equals("Pesquisar....")) {
+                jTextField1.setText("");
+                jTextField1.setForeground(new java.awt.Color(0, 0, 0)); // Cor preta ao digitar
+            }
+        }
+        
+        @Override
+        public void focusLost(java.awt.event.FocusEvent evt){
+            if (jTextField1.getText().isEmpty()) {
+                jTextField1.setText("Pesquisar....");
+                jTextField1.setForeground(new java.awt.Color(153, 153, 153)); // Cor cinza padrão
+            }
+        }
+        });
+        
+        configurarIconesTabela();
+        atualizarTabela();
+        // Dentro do construtor de CursoListar ou onde configurou a tblCursos
+        tblCursos.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                int linha = tblCursos.getSelectedRow();
+                int coluna = tblCursos.columnAtPoint(evt.getPoint());
+
+                // Evita erro caso clique fora de uma linha válida
+                if (linha == -1) return;
+
+                // --- LÓGICA DA COLUNA 4: REMOVER ---
+                if (coluna == 4) {
+                    int confirma = javax.swing.JOptionPane.showConfirmDialog(null, 
+                        "Tem certeza que deseja remover este curso?", "Atenção", javax.swing.JOptionPane.YES_NO_OPTION);
+
+                    if (confirma == javax.swing.JOptionPane.YES_OPTION) {
+                        EntityManagerFactory emf = Persistence.createEntityManagerFactory("prg03presistencia");
+                        EntityManager em = emf.createEntityManager();
+                        try {
+                            Curso selecionado = listaCursos.get(linha); 
+                            em.getTransaction().begin();
+                            Curso cursoParaRemover = em.find(Curso.class, selecionado.getId());
+                            if (cursoParaRemover != null) em.remove(cursoParaRemover);
+                            em.getTransaction().commit();
+                            
+                            javax.swing.JOptionPane.showMessageDialog(null, "Curso removido!");
+                            atualizarTabela(); 
+                        } catch (Exception e) {
+                            if (em.getTransaction().isActive()) em.getTransaction().rollback();
+                            javax.swing.JOptionPane.showMessageDialog(null, "Erro ao remover: " + e.getMessage());
+                        } finally {
+                            em.close();
+                            emf.close();
+                        }
+                    }
+                }
+
+                // logica pra esditar dados
+                else if (coluna == 5) {
+                    try {
+                        // Pega o curso da lista carregada do banco
+                        Curso cursoSelecionado = listaCursos.get(linha);
+                        
+                        // Abre a tela de edição passando o curso
+                        CursoEditar telaEditar = new CursoEditar(cursoSelecionado);
+                        telaEditar.setLocationRelativeTo(null);
+                        telaEditar.setVisible(true);
+
+                        // Quando fechar a edição, atualiza a tabela principal
+                        telaEditar.addWindowListener(new java.awt.event.WindowAdapter() {
+                            @Override
+                            public void windowClosed(java.awt.event.WindowEvent e) {
+                                atualizarTabela();
+                            }
+                        });
+                    }catch(Exception e){
+                        javax.swing.JOptionPane.showMessageDialog(null, "Erro ao abrir edição: " + e.getMessage());
+                    }
+                }
+            }
+        });
+
+    }
+    
+        public void pesquisarCursos(String termo) {
+        EntityManagerFactory emf = Persistence.createEntityManagerFactory("prg03presistencia");
+        EntityManager em = emf.createEntityManager();
+
+        try {
+            // consulta que busca pelo nome ou pelo código usando like
+            // buscar qualquer parte do texto
+            String jpql = "from Curso c where lower(c.nome) like :termo or lower(c.codigo) like :termo";
+            this.listaCursos = em.createQuery(jpql, Curso.class)
+                                 .setParameter("termo", "%" + termo.toLowerCase() + "%")
+                                 .getResultList();
+
+            DefaultTableModel model = (DefaultTableModel) tblCursos.getModel();
+            model.setRowCount(0);
+
+            for (Curso c : this.listaCursos) {
+                model.addRow(new Object[]{
+                    c.getNome(),
+                    c.getCodigo(),
+                    (c.getVagas() != null ? c.getVagas() : 0),
+                    c.getModalidade(),
+                    "", ""
+                });
+            }
+        } catch (Exception e) {
+            System.err.println("Erro na pesquisa: " + e.getMessage());
+        } finally {
+            em.close();
+            emf.close();
+        }
     }
     
 
@@ -92,19 +206,19 @@ public class CursoListar extends javax.swing.JFrame {
         lblNome.setBackground(new java.awt.Color(255, 255, 255));
         lblNome.setFont(new java.awt.Font("Liberation Sans", 0, 18)); // NOI18N
         lblNome.setForeground(new java.awt.Color(255, 255, 255));
-        lblNome.setText("           NOME");
+        lblNome.setText("NOME CURSO");
 
         lblCurso.setFont(new java.awt.Font("Liberation Sans", 0, 18)); // NOI18N
         lblCurso.setForeground(new java.awt.Color(255, 255, 255));
-        lblCurso.setText("             CURSO");
+        lblCurso.setText("CODIGO CURSO");
 
         lblTurma.setFont(new java.awt.Font("Liberation Sans", 0, 18)); // NOI18N
         lblTurma.setForeground(new java.awt.Color(255, 255, 255));
-        lblTurma.setText("           TURMA");
+        lblTurma.setText("  VAGAS");
 
         lblModalidade.setFont(new java.awt.Font("Liberation Sans", 0, 18)); // NOI18N
         lblModalidade.setForeground(new java.awt.Color(255, 255, 255));
-        lblModalidade.setText("      MODALIDADE");
+        lblModalidade.setText("MODALIDADE");
 
         lblRemover.setFont(new java.awt.Font("Liberation Sans", 0, 18)); // NOI18N
         lblRemover.setForeground(new java.awt.Color(255, 255, 255));
@@ -119,9 +233,9 @@ public class CursoListar extends javax.swing.JFrame {
         jPanel1Layout.setHorizontalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel1Layout.createSequentialGroup()
-                .addGap(41, 41, 41)
+                .addContainerGap()
                 .addComponent(lblNome, javax.swing.GroupLayout.PREFERRED_SIZE, 144, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addGap(47, 47, 47)
                 .addComponent(lblCurso, javax.swing.GroupLayout.PREFERRED_SIZE, 180, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(lblTurma, javax.swing.GroupLayout.PREFERRED_SIZE, 184, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -138,12 +252,13 @@ public class CursoListar extends javax.swing.JFrame {
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
                 .addContainerGap()
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addComponent(lblEditar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(lblEditar, javax.swing.GroupLayout.DEFAULT_SIZE, 38, Short.MAX_VALUE)
                     .addComponent(lblRemover, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(lblModalidade, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(lblTurma, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(lblCurso, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(lblNome, javax.swing.GroupLayout.DEFAULT_SIZE, 38, Short.MAX_VALUE))
+                    .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                        .addComponent(lblCurso, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addComponent(lblNome, javax.swing.GroupLayout.DEFAULT_SIZE, 38, Short.MAX_VALUE)))
                 .addContainerGap())
         );
 
@@ -174,12 +289,17 @@ public class CursoListar extends javax.swing.JFrame {
         pnlPesquisa.add(lblLupa);
 
         jTextField1.setColumns(15);
-        jTextField1.setForeground(new java.awt.Color(153, 153, 153));
+        jTextField1.setForeground(new java.awt.Color(51, 51, 51));
         jTextField1.setText("Pesquisar....");
         jTextField1.setBorder(null);
         jTextField1.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jTextField1ActionPerformed(evt);
+            }
+        });
+        jTextField1.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyReleased(java.awt.event.KeyEvent evt) {
+                jTextField1KeyReleased(evt);
             }
         });
         pnlPesquisa.add(jTextField1);
@@ -200,15 +320,11 @@ public class CursoListar extends javax.swing.JFrame {
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addComponent(pnlCorpo, javax.swing.GroupLayout.PREFERRED_SIZE, 1180, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(0, 0, Short.MAX_VALUE))
+            .addComponent(pnlCorpo, javax.swing.GroupLayout.PREFERRED_SIZE, 1180, javax.swing.GroupLayout.PREFERRED_SIZE)
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addComponent(pnlCorpo, javax.swing.GroupLayout.PREFERRED_SIZE, 702, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(0, 0, Short.MAX_VALUE))
+            .addComponent(pnlCorpo, javax.swing.GroupLayout.PREFERRED_SIZE, 702, javax.swing.GroupLayout.PREFERRED_SIZE)
         );
 
         pack();
@@ -219,38 +335,33 @@ public class CursoListar extends javax.swing.JFrame {
     }//GEN-LAST:event_jTextField1ActionPerformed
 
     private void btncadastraCursoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btncadastraCursoActionPerformed
-        // TODO add your handling code here:    
-    // 2. Faz a tela aparecer
+        CadastraCurso tela = new CadastraCurso();
+        tela.setLocationRelativeTo(null);
+        tela.setVisible(true);
+
+        tela.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosed(java.awt.event.WindowEvent e) {
+                atualizarTabela(); 
+            }
+        });
         
     }//GEN-LAST:event_btncadastraCursoActionPerformed
+
+    private void jTextField1KeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_jTextField1KeyReleased
+        // TODO add your handling code here:
+        String termo = jTextField1.getText().trim();
+        if(termo.length() > 0){
+            pesquisarCursos(termo);
+        }else{
+            atualizarTabela();
+        }
+    }//GEN-LAST:event_jTextField1KeyReleased
 
     /**
      * @param args the command line arguments
      */
     public static void main(String args[]) {
-        /* Set the Nimbus look and feel */
-        //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
-        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
-         */
-        try {
-            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
-                if ("Nimbus".equals(info.getName())) {
-                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
-                    break;
-                }
-            }
-        } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(CursoListar.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(CursoListar.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(CursoListar.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
-            java.util.logging.Logger.getLogger(CursoListar.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        }
-        //</editor-fold>
-        /* Create and display the form */
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
                 new CursoListar().setVisible(true);
@@ -264,14 +375,15 @@ public class CursoListar extends javax.swing.JFrame {
         ImageIcon imgRemover = new ImageIcon(getClass().getResource("/images/remover.png"));
         ImageIcon imgEditar = new ImageIcon(getClass().getResource("/images/editar.png"));
 
-        // Criamos o renderizador para desenhar os ícones nas células
+        //  renderizador para desenhar os ícones nas células
         DefaultTableCellRenderer renderer = new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value,
                     boolean isSelected, boolean hasFocus, int row, int column) {
                 
                 JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                label.setText(""); // Garante que não apareça texto, apenas o ícone
+                // Garante que não apareça texto, apenas o ícone
+                label.setText(""); 
                 label.setHorizontalAlignment(JLabel.CENTER);
 
                 // Coluna 4 é REMOVER, Coluna 5 é EDITAR (ajuste se a sua ordem for diferente)
@@ -291,6 +403,37 @@ public class CursoListar extends javax.swing.JFrame {
         System.err.println("Erro ao carregar ícones: " + e.getMessage());
     }
 }
+        public void atualizarTabela() {
+        EntityManagerFactory emf = Persistence.createEntityManagerFactory("prg03presistencia");
+        EntityManager em = emf.createEntityManager();
+
+        try {
+            // Busca a lista atualizada do banco
+            this.listaCursos = em.createQuery("from Curso", Curso.class).getResultList();
+
+            DefaultTableModel model = (DefaultTableModel) tblCursos.getModel();
+            // Limpa a tabela para não duplicar dados
+            model.setRowCount(0); 
+
+            for (br.com.ifba.curso.entity.Curso c : this.listaCursos) {
+                model.addRow(new Object[]{
+                    c.getNome(),
+                    c.getCodigo(),
+                    // Se vagas for nulo (cursos antigos), mostra 0
+                    (c.getVagas() != null ? c.getVagas() : 0), 
+                    c.getModalidade(),
+                    // espaço para os ícones de deletar e editar
+                    "", "" 
+                });
+            }
+        }catch(Exception e){
+            // tratamento de exceção imprime um JOptionPane com um erro ao carrega a tabela
+            javax.swing.JOptionPane.showMessageDialog(null, "Erro ao carregar tabela: " + e.getMessage());
+            } finally {
+                em.close();
+                emf.close();
+                }
+    }
     
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btncadastraCurso;
