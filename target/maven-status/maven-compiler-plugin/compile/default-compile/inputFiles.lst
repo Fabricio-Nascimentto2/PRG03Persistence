@@ -1,3 +1,13 @@
 /home/fabricio/NetBeansProject/pgr03FabricioNascimentto/prg03presistencia/src/main/java/br/com/ifba/CursoSave.java
+/home/fabricio/NetBeansProject/pgr03FabricioNascimentto/prg03presistencia/src/main/java/br/com/ifba/curso/dao/CursoDao.java
+/home/fabricio/NetBeansProject/pgr03FabricioNascimentto/prg03presistencia/src/main/java/br/com/ifba/curso/dao/CursoIDao.java
 /home/fabricio/NetBeansProject/pgr03FabricioNascimentto/prg03presistencia/src/main/java/br/com/ifba/curso/entity/Curso.java
+/home/fabricio/NetBeansProject/pgr03FabricioNascimentto/prg03presistencia/src/main/java/br/com/ifba/curso/view/CadastraCurso.java
+/home/fabricio/NetBeansProject/pgr03FabricioNascimentto/prg03presistencia/src/main/java/br/com/ifba/curso/view/CursoEditar.java
 /home/fabricio/NetBeansProject/pgr03FabricioNascimentto/prg03presistencia/src/main/java/br/com/ifba/curso/view/CursoListar.java
+/home/fabricio/NetBeansProject/pgr03FabricioNascimentto/prg03presistencia/src/main/java/br/com/ifba/infrastructure/dao/GenericDao.java
+/home/fabricio/NetBeansProject/pgr03FabricioNascimentto/prg03presistencia/src/main/java/br/com/ifba/infrastructure/dao/GenericIDao.java
+/home/fabricio/NetBeansProject/pgr03FabricioNascimentto/prg03presistencia/src/main/java/br/com/ifba/infrastructure/entity/PersistenceEntity.java
+/home/fabricio/NetBeansProject/pgr03FabricioNascimentto/prg03presistencia/src/main/java/br/com/ifba/turma/dao/TurmaDao.java
+/home/fabricio/NetBeansProject/pgr03FabricioNascimentto/prg03presistencia/src/main/java/br/com/ifba/turma/dao/TurmaIDao.java
+/home/fabricio/NetBeansProject/pgr03FabricioNascimentto/prg03presistencia/src/main/java/br/com/ifba/turma/entity/Turma.java

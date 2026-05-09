@@ -4,22 +4,17 @@
  */
 package br.com.ifba.curso.view;
 
+import br.com.ifba.curso.dao.CursoDao;
+import br.com.ifba.curso.dao.CursoIDao;
 import br.com.ifba.curso.entity.Curso;
 import java.awt.Component;
 import java.awt.Graphics;
-import java.awt.Graphics2D;
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableCellRenderer;
-import javax.swing.Icon;
-import java.awt.Image;
 import java.awt.Insets;
 import java.util.List;
-import java.awt.RenderingHints;
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
 import javax.swing.border.Border;
 import javax.swing.table.DefaultTableModel;
 
@@ -31,6 +26,8 @@ import javax.swing.table.DefaultTableModel;
 public class CursoListar extends javax.swing.JFrame {
 
     private List<Curso> listaCursos;
+    
+    private final CursoIDao cursoDao = (CursoIDao) new CursoDao();
 
     /**
      * Creates new form CursoListar
@@ -75,29 +72,18 @@ public class CursoListar extends javax.swing.JFrame {
                         "Tem certeza que deseja remover este curso?", "Atenção", javax.swing.JOptionPane.YES_NO_OPTION);
 
                     if (confirma == javax.swing.JOptionPane.YES_OPTION) {
-                        EntityManagerFactory emf = Persistence.createEntityManagerFactory("prg03presistencia");
-                        EntityManager em = emf.createEntityManager();
                         try {
                             Curso selecionado = listaCursos.get(linha); 
-                            em.getTransaction().begin();
-                            Curso cursoParaRemover = em.find(Curso.class, selecionado.getId());
-                            if (cursoParaRemover != null) em.remove(cursoParaRemover);
-                            em.getTransaction().commit();
-                            
+                            // O DAO resolve tudo agora:
+                            cursoDao.delete(selecionado);
+
                             javax.swing.JOptionPane.showMessageDialog(null, "Curso removido!");
                             atualizarTabela(); 
                         } catch (Exception e) {
-                            if (em.getTransaction().isActive()) em.getTransaction().rollback();
                             javax.swing.JOptionPane.showMessageDialog(null, "Erro ao remover: " + e.getMessage());
-                        } finally {
-                            em.close();
-                            emf.close();
                         }
                     }
-                }
-
-                // logica pra esditar dados
-                else if (coluna == 5) {
+                }else if (coluna == 5) {
                     try {
                         // Pega o curso da lista carregada do banco
                         Curso cursoSelecionado = listaCursos.get(linha);
@@ -123,35 +109,22 @@ public class CursoListar extends javax.swing.JFrame {
 
     }
     
-        public void pesquisarCursos(String termo) {
-        EntityManagerFactory emf = Persistence.createEntityManagerFactory("prg03presistencia");
-        EntityManager em = emf.createEntityManager();
-
+    public void pesquisarCursos(String termo){
         try {
-            // consulta que busca pelo nome ou pelo código usando like
-            // buscar qualquer parte do texto
-            String jpql = "from Curso c where lower(c.nome) like :termo or lower(c.codigo) like :termo";
-            this.listaCursos = em.createQuery(jpql, Curso.class)
-                                 .setParameter("termo", "%" + termo.toLowerCase() + "%")
-                                 .getResultList();
+            this.listaCursos = cursoDao.buscarPorNome(termo);
 
             DefaultTableModel model = (DefaultTableModel) tblCursos.getModel();
             model.setRowCount(0);
 
-            for (Curso c : this.listaCursos) {
+            for (Curso c : this.listaCursos){
                 model.addRow(new Object[]{
-                    c.getNome(),
-                    c.getCodigo(),
+                    c.getNome(), c.getCodigo(),
                     (c.getVagas() != null ? c.getVagas() : 0),
-                    c.getModalidade(),
-                    "", ""
+                    c.getModalidade(), "", ""
                 });
             }
-        } catch (Exception e) {
+        }catch(Exception e){
             System.err.println("Erro na pesquisa: " + e.getMessage());
-        } finally {
-            em.close();
-            emf.close();
         }
     }
     
@@ -194,6 +167,7 @@ public class CursoListar extends javax.swing.JFrame {
         pnlPesquisa = new javax.swing.JPanel();
         lblLupa = new javax.swing.JLabel();
         jTextField1 = new javax.swing.JTextField();
+        pnlCadastraCurso = new javax.swing.JPanel();
         btncadastraCurso = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
@@ -306,6 +280,9 @@ public class CursoListar extends javax.swing.JFrame {
 
         pnlCorpo.add(pnlPesquisa, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 40, 370, 50));
 
+        pnlCadastraCurso.setBackground(new java.awt.Color(0, 153, 153));
+        pnlCadastraCurso.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(51, 255, 255)));
+
         btncadastraCurso.setIcon(new javax.swing.ImageIcon(getClass().getResource("/images/adicionar-usuario (1).png"))); // NOI18N
         btncadastraCurso.setBorderPainted(false);
         btncadastraCurso.setContentAreaFilled(false);
@@ -314,7 +291,23 @@ public class CursoListar extends javax.swing.JFrame {
                 btncadastraCursoActionPerformed(evt);
             }
         });
-        pnlCorpo.add(btncadastraCurso, new org.netbeans.lib.awtextra.AbsoluteConstraints(510, 30, 160, 80));
+
+        javax.swing.GroupLayout pnlCadastraCursoLayout = new javax.swing.GroupLayout(pnlCadastraCurso);
+        pnlCadastraCurso.setLayout(pnlCadastraCursoLayout);
+        pnlCadastraCursoLayout.setHorizontalGroup(
+            pnlCadastraCursoLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(pnlCadastraCursoLayout.createSequentialGroup()
+                .addComponent(btncadastraCurso, javax.swing.GroupLayout.PREFERRED_SIZE, 168, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(0, 0, Short.MAX_VALUE))
+        );
+        pnlCadastraCursoLayout.setVerticalGroup(
+            pnlCadastraCursoLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, pnlCadastraCursoLayout.createSequentialGroup()
+                .addComponent(btncadastraCurso, javax.swing.GroupLayout.PREFERRED_SIZE, 80, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(0, 0, Short.MAX_VALUE))
+        );
+
+        pnlCorpo.add(pnlCadastraCurso, new org.netbeans.lib.awtextra.AbsoluteConstraints(590, 30, 170, 80));
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -403,36 +396,25 @@ public class CursoListar extends javax.swing.JFrame {
         System.err.println("Erro ao carregar ícones: " + e.getMessage());
     }
 }
-        public void atualizarTabela() {
-        EntityManagerFactory emf = Persistence.createEntityManagerFactory("prg03presistencia");
-        EntityManager em = emf.createEntityManager();
-
-        try {
-            // Busca a lista atualizada do banco
-            this.listaCursos = em.createQuery("from Curso", Curso.class).getResultList();
+    public void atualizarTabela(){
+        try{
+            this.listaCursos = cursoDao.findAll();
 
             DefaultTableModel model = (DefaultTableModel) tblCursos.getModel();
-            // Limpa a tabela para não duplicar dados
             model.setRowCount(0); 
 
-            for (br.com.ifba.curso.entity.Curso c : this.listaCursos) {
+            for(Curso c : this.listaCursos){
                 model.addRow(new Object[]{
                     c.getNome(),
                     c.getCodigo(),
-                    // Se vagas for nulo (cursos antigos), mostra 0
                     (c.getVagas() != null ? c.getVagas() : 0), 
                     c.getModalidade(),
-                    // espaço para os ícones de deletar e editar
                     "", "" 
                 });
             }
         }catch(Exception e){
-            // tratamento de exceção imprime um JOptionPane com um erro ao carrega a tabela
             javax.swing.JOptionPane.showMessageDialog(null, "Erro ao carregar tabela: " + e.getMessage());
-            } finally {
-                em.close();
-                emf.close();
-                }
+        }
     }
     
     // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -447,6 +429,7 @@ public class CursoListar extends javax.swing.JFrame {
     private javax.swing.JLabel lblNome;
     private javax.swing.JLabel lblRemover;
     private javax.swing.JLabel lblTurma;
+    private javax.swing.JPanel pnlCadastraCurso;
     private javax.swing.JPanel pnlCorpo;
     private javax.swing.JPanel pnlPesquisa;
     private javax.swing.JTable tblCursos;
