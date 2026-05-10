@@ -7,6 +7,7 @@ br/com/ifba/curso/view/CadastraCurso$1.class
 br/com/ifba/curso/view/CursoListar$4.class
 br/com/ifba/curso/view/CursoEditar.class
 br/com/ifba/curso/dao/CursoDao.class
+br/com/ifba/curso/controller/CursoIController.class
 br/com/ifba/infrastructure/dao/GenericDao.class
 br/com/ifba/curso/view/CadastraCurso$4.class
 br/com/ifba/turma/dao/TurmaDao.class
@@ -21,9 +22,13 @@ br/com/ifba/curso/view/CursoListar$8.class
 br/com/ifba/curso/view/CursoListar$5.class
 br/com/ifba/curso/dao/CursoIDao.class
 br/com/ifba/curso/view/CadastraCurso$5.class
+br/com/ifba/curso/service/CursoService.class
+br/com/ifba/infrastructure/util/StringUtil.class
 br/com/ifba/infrastructure/entity/PersistenceEntity.class
 br/com/ifba/curso/view/CadastraCurso$3.class
+br/com/ifba/curso/service/CursoIService.class
 br/com/ifba/CursoSave.class
+br/com/ifba/curso/controller/CursoController.class
 br/com/ifba/curso/view/CursoListar$6.class
 br/com/ifba/infrastructure/dao/GenericIDao.class
 br/com/ifba/curso/view/CursoListar.class

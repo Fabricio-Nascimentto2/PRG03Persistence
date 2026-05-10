@@ -4,10 +4,13 @@
  */
 package br.com.ifba.curso.view;
 
+import br.com.ifba.curso.controller.CursoController;
+import br.com.ifba.curso.controller.CursoIController;
 import br.com.ifba.curso.entity.Curso;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
+import javax.swing.JOptionPane;
 
 /**
  *
@@ -16,6 +19,8 @@ import javax.persistence.Persistence;
 public class CursoEditar extends javax.swing.JFrame {
 
     private Long idCurso;
+    
+    private final CursoIController cursoController = new CursoController();
 
     /**
      * Creates new form CursoEditar
@@ -240,40 +245,31 @@ public class CursoEditar extends javax.swing.JFrame {
     }//GEN-LAST:event_cbModalidadeActionPerformed
 
     private void btnsalvaNovoCursoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnsalvaNovoCursoActionPerformed
-        EntityManagerFactory emf = Persistence.createEntityManagerFactory("prg03presistencia");
-        EntityManager em = emf.createEntityManager();
 
-            try{
-                // Criar o objeto e preencher com os dados da tela
-                Curso cursoAtualizado = new Curso();
-                cursoAtualizado.setId(this.idCurso); // IMPORTANTE: Define o ID
-                cursoAtualizado.setNome(txtnomeCurso.getText());
-                cursoAtualizado.setCodigo(txtcodigoCurso.getText());
-                cursoAtualizado.setModalidade(cbModalidade.getSelectedItem().toString());
 
-                // Executar a atualização com tratamento de exceção
-                // Captura o valor das vagas e converte para Integer
-                try{
-                    cursoAtualizado.setVagas(Integer.valueOf(txtVagas.getText()));
-                }catch(NumberFormatException e){
-                    // Valor padrão caso o campo esteja vazio ou inválido
-                    cursoAtualizado.setVagas(0); 
-                }
-                em.getTransaction().begin();
-                em.merge(cursoAtualizado);
-                em.getTransaction().commit();
+        try{
+            Curso cursoAtualizado = new Curso();
+            cursoAtualizado.setId(this.idCurso); 
+            cursoAtualizado.setNome(txtnomeCurso.getText());
+            cursoAtualizado.setCodigo(txtcodigoCurso.getText());
+            cursoAtualizado.setModalidade(cbModalidade.getSelectedItem().toString());
 
-                javax.swing.JOptionPane.showMessageDialog(this, "Curso atualizado com sucesso!");
-                this.dispose(); // Fecha esta tela
-
-            }catch(Exception e){
-                if (em.getTransaction().isActive()) em.getTransaction().rollback();
-                javax.swing.JOptionPane.showMessageDialog(this, "Erro ao atualizar: " + e.getMessage(),
-                                                          "Erro de Banco", javax.swing.JOptionPane.ERROR_MESSAGE);
-            }finally{
-                em.close();
-                emf.close();
+            try {
+                cursoAtualizado.setVagas(Integer.valueOf(txtVagas.getText()));
+            } catch(NumberFormatException e) {
+                cursoAtualizado.setVagas(0); 
             }
+
+            // CHAMADA CORRETA: O Controller e o Service cuidam do Hibernate para você
+            cursoController.update(cursoAtualizado);
+
+            JOptionPane.showMessageDialog(this, "Curso atualizado com sucesso!");
+            this.dispose(); 
+
+        }catch(RuntimeException e){
+            // Captura erros de validação do Service
+            JOptionPane.showMessageDialog(this, e.getMessage());
+        }
     }//GEN-LAST:event_btnsalvaNovoCursoActionPerformed
 
     // Variables declaration - do not modify//GEN-BEGIN:variables

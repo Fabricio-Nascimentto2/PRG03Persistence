@@ -4,17 +4,19 @@
  */
 package br.com.ifba.curso.view;
 
-import br.com.ifba.curso.dao.CursoDao;
-import br.com.ifba.curso.dao.CursoIDao;
+import br.com.ifba.curso.controller.CursoController;
+import br.com.ifba.curso.controller.CursoIController;
 import br.com.ifba.curso.entity.Curso;
 import java.awt.Component;
 import java.awt.Graphics;
+import java.awt.HeadlessException;
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableCellRenderer;
 import java.awt.Insets;
 import java.util.List;
+import javax.swing.JOptionPane;
 import javax.swing.border.Border;
 import javax.swing.table.DefaultTableModel;
 
@@ -24,17 +26,16 @@ import javax.swing.table.DefaultTableModel;
  * @author fabricio
  */
 public class CursoListar extends javax.swing.JFrame {
-
     private List<Curso> listaCursos;
     
-    private final CursoIDao cursoDao = (CursoIDao) new CursoDao();
+    // No topo da sua tela (JFrame)
+    private final CursoIController cursoController = new CursoController();
 
     /**
      * Creates new form CursoListar
      */
     public CursoListar() {
         initComponents();
-
         
         jTextField1.addFocusListener(new java.awt.event.FocusAdapter() {
         @Override
@@ -75,17 +76,16 @@ public class CursoListar extends javax.swing.JFrame {
                         try {
                             Curso selecionado = listaCursos.get(linha); 
                             // O DAO resolve tudo agora:
-                            cursoDao.delete(selecionado);
+                            cursoController.delete(selecionado);
 
                             javax.swing.JOptionPane.showMessageDialog(null, "Curso removido!");
                             atualizarTabela(); 
-                        } catch (Exception e) {
+                        } catch (HeadlessException e) {
                             javax.swing.JOptionPane.showMessageDialog(null, "Erro ao remover: " + e.getMessage());
                         }
                     }
-                }else if (coluna == 5) {
-                    try {
-                        // Pega o curso da lista carregada do banco
+                }else if(coluna == 5){
+                    try{
                         Curso cursoSelecionado = listaCursos.get(linha);
                         
                         // Abre a tela de edição passando o curso
@@ -94,9 +94,9 @@ public class CursoListar extends javax.swing.JFrame {
                         telaEditar.setVisible(true);
 
                         // Quando fechar a edição, atualiza a tabela principal
-                        telaEditar.addWindowListener(new java.awt.event.WindowAdapter() {
+                        telaEditar.addWindowListener(new java.awt.event.WindowAdapter(){
                             @Override
-                            public void windowClosed(java.awt.event.WindowEvent e) {
+                            public void windowClosed(java.awt.event.WindowEvent e){
                                 atualizarTabela();
                             }
                         });
@@ -110,36 +110,37 @@ public class CursoListar extends javax.swing.JFrame {
     }
     
     public void pesquisarCursos(String termo){
-        try {
-            this.listaCursos = cursoDao.buscarPorNome(termo);
+        try{
+            // ESSA LINHA É A CHAVE: Ela atualiza a lista global com o resultado da busca
+            this.listaCursos = cursoController.findByName(termo);
 
             DefaultTableModel model = (DefaultTableModel) tblCursos.getModel();
             model.setRowCount(0);
 
             for (Curso c : this.listaCursos){
                 model.addRow(new Object[]{
-                    c.getNome(), c.getCodigo(),
-                    (c.getVagas() != null ? c.getVagas() : 0),
-                    c.getModalidade(), "", ""
+                    c.getNome(), c.getCodigo(), c.getVagas(), c.getModalidade(), "", ""
                 });
             }
         }catch(Exception e){
-            System.err.println("Erro na pesquisa: " + e.getMessage());
+            JOptionPane.showMessageDialog(null, "Erro na pesquisa: " + e.getMessage());
         }
     }
-    
 
     class RoundedBorder implements Border {
         private int radius;
         RoundedBorder(int radius) {
             this.radius = radius;
         }
+        @Override
         public Insets getBorderInsets(Component c) {
             return new Insets(this.radius+1, this.radius+1, this.radius+2, this.radius);
         }
+        @Override
         public boolean isBorderOpaque() {
             return true;
         }
+        @Override
         public void paintBorder(Component c, Graphics g, int x, int y, int width, int height) {
             g.drawRoundRect(x, y, width-1, height-1, radius, radius);
         }
@@ -380,9 +381,11 @@ public class CursoListar extends javax.swing.JFrame {
                 label.setHorizontalAlignment(JLabel.CENTER);
 
                 // Coluna 4 é REMOVER, Coluna 5 é EDITAR (ajuste se a sua ordem for diferente)
-                if (column == 4) label.setIcon(imgRemover);
-                else if (column == 5) label.setIcon(imgEditar);
-                else label.setIcon(null); // Outras colunas não têm ícone
+                switch (column) {
+                    case 4 -> label.setIcon(imgRemover);
+                    case 5 -> label.setIcon(imgEditar);
+                    default -> label.setIcon(null); // Outras colunas não têm ícone
+                }
 
                 return label;
             }
@@ -397,24 +400,21 @@ public class CursoListar extends javax.swing.JFrame {
     }
 }
     public void atualizarTabela(){
-        try{
-            this.listaCursos = cursoDao.findAll();
+        try {
+        // ESSA LINHA É CRUCIAL:
+        this.listaCursos = cursoController.findAll(); 
 
-            DefaultTableModel model = (DefaultTableModel) tblCursos.getModel();
-            model.setRowCount(0); 
+        DefaultTableModel model = (DefaultTableModel) tblCursos.getModel();
+        model.setRowCount(0);
 
-            for(Curso c : this.listaCursos){
-                model.addRow(new Object[]{
-                    c.getNome(),
-                    c.getCodigo(),
-                    (c.getVagas() != null ? c.getVagas() : 0), 
-                    c.getModalidade(),
-                    "", "" 
-                });
-            }
-        }catch(Exception e){
-            javax.swing.JOptionPane.showMessageDialog(null, "Erro ao carregar tabela: " + e.getMessage());
+        for (Curso c : this.listaCursos) {
+            model.addRow(new Object[]{
+                c.getNome(), c.getCodigo(), c.getVagas(), c.getModalidade(), "", ""
+            });
         }
+    } catch (Exception e) {
+        JOptionPane.showMessageDialog(null, "Erro: " + e.getMessage());
+    }
     }
     
     // Variables declaration - do not modify//GEN-BEGIN:variables

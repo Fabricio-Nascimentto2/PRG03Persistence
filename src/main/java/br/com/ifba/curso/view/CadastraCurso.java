@@ -4,8 +4,10 @@
  */
 package br.com.ifba.curso.view;
 
-import br.com.ifba.curso.dao.CursoDao;
-import br.com.ifba.curso.dao.CursoIDao;
+import br.com.ifba.curso.controller.CursoController;
+import br.com.ifba.curso.controller.CursoIController;
+import br.com.ifba.curso.entity.Curso;
+import javax.swing.JOptionPane;
 
 /**
  *
@@ -13,7 +15,7 @@ import br.com.ifba.curso.dao.CursoIDao;
  */
 public class CadastraCurso extends javax.swing.JFrame {
     
-    private final CursoIDao cursoDao = (CursoIDao) new CursoDao();
+    private final CursoIController cursoController = new CursoController();
     
     public CadastraCurso() {
         initComponents();
@@ -189,28 +191,26 @@ public class CadastraCurso extends javax.swing.JFrame {
 
     private void btnsalvaNovoCursoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnsalvaNovoCursoActionPerformed
         try {
-        // 1. Coleta os dados da tela
-        br.com.ifba.curso.entity.Curso novoCurso = new br.com.ifba.curso.entity.Curso();
-        novoCurso.setNome(txtnomeCurso.getText());
-        novoCurso.setCodigo(txtcodigoCurso.getText());
-        novoCurso.setModalidade(cbModalidade.getSelectedItem().toString());
-        
-        // Tratamento simples para o campo de vagas
-        String vagasStr = txtVagas.getText();
-        novoCurso.setVagas(vagasStr.isEmpty() ? 0 : Integer.parseInt(vagasStr));
+            Curso novoCurso = new Curso();
+            novoCurso.setNome(txtnomeCurso.getText());
+            novoCurso.setCodigo(txtcodigoCurso.getText());
+            novoCurso.setModalidade(cbModalidade.getSelectedItem().toString());
 
-        // 2. Chama o DAO para salvar (ele já trata transação e fechar conexão)
-        cursoDao.save(novoCurso);
+            String vagasStr = txtVagas.getText();
+            novoCurso.setVagas(vagasStr.isEmpty() ? 0 : Integer.parseInt(vagasStr));
 
-        // 3. Feedback e fechamento
-        javax.swing.JOptionPane.showMessageDialog(this, "Curso cadastrado com sucesso!");
-        this.dispose(); 
+            // CHAMADA CORRETA: Agora passa pelo Controller -> Service -> StringUtil
+            cursoController.save(novoCurso);
 
-    } catch (NumberFormatException e) {
-        javax.swing.JOptionPane.showMessageDialog(this, "Por favor, informe um número válido para as vagas.");
-    } catch (Exception e) {
-        javax.swing.JOptionPane.showMessageDialog(this, "Erro ao cadastrar curso: " + e.getMessage());
-    }
+            JOptionPane.showMessageDialog(this, "Curso cadastrado com sucesso!");
+            this.dispose(); 
+
+        }catch(RuntimeException e){
+            // AQUI aparecerão as mensagens da StringUtil ("Nome obrigatório", etc.)
+            JOptionPane.showMessageDialog(this, e.getMessage(), "Validação", JOptionPane.WARNING_MESSAGE);
+        }catch (Exception e){
+            JOptionPane.showMessageDialog(this, "Erro inesperado: " + e.getMessage());
+        }
 
     }//GEN-LAST:event_btnsalvaNovoCursoActionPerformed
 
